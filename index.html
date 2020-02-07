@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/bulma.min.css">
+    <script src="https://use.fontawesome.com/e7e1841053.js"></script>
+    <style type="text/css">
+        .node {}
+
+        .link { stroke: blue; stroke-opacity: .6; stroke-width: 1px; }
+    </style>
+</head>
+<body>
+    <section class="hero is-primary">
+        <div class="hero-body">
+          <div class="container">
+            <h1 class="title">
+              Herramienta para crear diagramas causales  
+            </h1>
+            <h2 class="subtitle">
+              Universidad de Cartagena @ 2020 
+            </h2>
+          </div>
+        </div>
+      </section>
+
+<div id="app" class="container">
+    <div class="columns">
+        <div class="column is-two-fifths">
+            <div v-if="procesarBAN">
+                <div class="container">
+                    <div class="notification is-info">
+                        
+                        Para comenzar escribe el enunciado del problema ha realizar el diagrama causal.
+                      </div>
+                                
+                                <div class="field">
+                                    <div class="control">
+                                        <textarea cols="30" rows="10"
+                                        class="textarea is-info" v-model="enunciadoText" class="materialize-textarea" placeholder="Enunciado del problema"></textarea>
+                                    </div>
+                                  </div>
+                  <button  class="button is-info" v-on:click="procesarT()">Procesar texto</button>
+                </div>
+              
+              </div>
+              <div v-else>
+                <div v-if="crearVariables">
+                  <div>
+                    <div class="notification is-info">
+                        
+                        Ingresa las variables del sistema, a continuación podrás ver palabras sugeridas para una variable.
+
+                        <button class="button is-success" v-on:click="enunciadoModal = true">Ver enunciado</button>
+                        <button class="button is-primary" v-on:click="consejosModal = true">Ver consejos</button>
+                    </div>
+                    <button v-for="item in cadenaDePalabras" v-on:click="agregarPalabra(item)">{{item}}</button>
+                
+                    
+                    <div class="field">
+                        <div class="control">
+                            <input type="text"class="input is-primary" type="text" placeholder="Nueva variable" v-model="palabraFormada">
+                        </div>
+                    <button class="button is-info" v-on:click="agregarVariable()">Guardar</button>
+                
+                    <aside class="menu">
+                        <ul class="menu-list">
+                            <li v-for="(item, index) in listaVariables">{{item}}             <button class="delete" aria-label="close" @click="deleteTask(index)"></button>
+                            </li>
+                          </ul>
+                          
+                    </aside>
+                    <br><br>
+                    <button class="button is-info" v-on:click="crearMatrizA()">Crear matriz de adyasensia</button>
+                  </div>
+              
+                  
+                </div></div>
+
+
+
+                
+
+                <div  v-else>
+                    <div class="card" v-for="item in listaVariables">
+                        <header class="card-header">
+                          <p class="card-header-title">
+                            {{item}}
+                          </p>
+                          <a class="card-header-icon" aria-label="more options">
+                            <span class="icon">
+                              <i class="fa fa-angle-down" aria-hidden="true"></i>
+                            </span>
+                          </a>
+                        </header>
+                        <div class="card-content">
+                          <div class="content">
+                            <div v-for="i in matrizA[item]">
+                  
+                                <span v-if="i.var !== item">{{i.var}} -> <button class="button is-info" v-on:click="cambiarIncidencia(item,i.var,i.inc)">{{i.inc}}</button></span> 
+                              </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <button class="button is-info" v-on:click="generarDiagrama()">Generar diagrama</button>
+                  </div>
+                  
+                  
+                
+              </div>
+              
+        </div>
+        <div class="column">
+            
+    <svg width="960" height="600"></svg>
+
+        </div>
+    </div>
+
+    <div class="modal is-active" v-show="enunciadoModal">
+        <div class="modal-background"></div>
+        <div class="modal-content">
+          <div class="box">
+            <h3>Enunciado:</h3>
+            <p>{{enunciadoText}}</p>
+          </div>
+        </div>
+        <button class="modal-close is-large" aria-label="close" v-on:click="enunciadoModal = false"></button>
+      </div>
+
+      <div class="modal is-active" v-show="consejosModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Errores comunes en la realización de diagramas causales</p>
+            <button class="delete" aria-label="close" v-on:click="consejosModal = false"></button>
+          </header>
+          <section class="modal-card-body">
+            <span>
+                En la práctica, se ha identificado varios tipos de errores que son comunes en la elaboración
+de los diagramas causales. Inicialmente se describirán y posteriormente se mostrarán con
+ejemplos. Ellos son a continuación:
+<p><strong>Uso de variables no cuantificables:</strong> se suelen bautizar las variables con nombres que no sugieren cantidad.</p>
+<p><strong>Variables que incorporan la polaridad:</strong> se da cuando el nombre de la variable tiene un verbo que sugiere su incremento o decremento.</p>
+<p><strong>Relación de variables vs. Hipótesis dinámica:</strong>hasta se logra plantear ciclos, pero en realidad esta relación no está explicando nada del fenómeno en cuestión.</p>
+<p><strong>Causalidades redundantes:</strong> se presenta cuando se plantean causalidades para lograr efectos que otras causalidades ya lograron.</p>
+<p><strong>Nivel de agregación:</strong> por exceso o por defecto. Se hacen diagramas muy grandes y detallados para situaciones muy simples, o diagramas muy pequeños para situaciones complejas.</p>
+<p><strong>Diagramas causales sin dinámica:</strong> cuando se hace un diagrama causal en el cual los ciclo carecen de relaciones que permitan la realimentación.
+</p>
+            </span>
+          </section>
+        
+        </div>
+      </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://d3js.org/d3.v4.min.js" type="text/javascript"></script>
+<script src="https://d3js.org/d3-selection-multi.v1.js"></script>
+<script src="js/palabrasR.js"></script>
+<script src="js/main.js"></script>
+
+<script type="text/javascript">
+  
+    var colors = d3.scaleOrdinal(d3.schemeCategory10);
+
+    var svg = d3.select("svg"),
+        width = +svg.attr("width"),
+        height = +svg.attr("height"),
+        node,
+        link;
+
+    svg.append('defs').append('marker')
+        .attrs({'id':'arrowhead',
+            'viewBox':'-0 -5 10 10',
+            'refX':13,
+            'refY':0,
+            'orient':'auto',
+            'markerWidth':13,
+            'markerHeight':13,
+            'xoverflow':'visible'})
+        .append('svg:path')
+        .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+        .attr('fill', '#999')
+        .style('stroke','none');
+
+    var simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id(function (d) {return d.id;}).distance(100).strength(1))
+        .force("charge", d3.forceManyBody())
+        .force("center", d3.forceCenter(width / 2, height / 2));
+
+    // d3.json(led, function (error, graph) {
+    //     if (error) throw error;
+    //     update(graph.links, graph.nodes);
+    // })
+
+
+    function update(links, nodes) {
+        
+        link = svg.selectAll(".link")
+            .data(links)
+            .enter()
+            .append("line")
+            .attr("class", "link")
+            .attr('marker-end','url(#arrowhead)')
+
+        link.append("title")
+            .text(function (d) {return d.type;});
+
+        edgepaths = svg.selectAll(".edgepath")
+            .data(links)
+            .enter()
+            .append('path')
+            .attrs({
+                'class': 'edgepath',
+                'fill-opacity': 0,
+                'stroke-opacity': 0,
+                'id': function (d, i) {return 'edgepath' + i}
+            })
+            .style("pointer-events", "none");
+
+        edgelabels = svg.selectAll(".edgelabel")
+            .data(links)
+            .enter()
+            .append('text')
+            .style("pointer-events", "none")
+            .attrs({
+                'class': 'edgelabel',
+                'id': function (d, i) {return 'edgelabel' + i},
+                'font-size': 20,
+                'fill': '#aaa'
+            });
+
+        edgelabels.append('textPath')
+            .attr('xlink:href', function (d, i) {return '#edgepath' + i})
+            .style("text-anchor", "middle")
+            .style("pointer-events", "none")
+            .attr("startOffset", "50%")
+            .text(function (d) {return d.type});
+
+        node = svg.selectAll(".node")
+            .data(nodes)
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    //.on("end", dragended)
+            );
+
+        node.append("circle")
+            .attr("r", 10)
+            .style("fill", function (d, i) {return colors(i);})
+
+        node.append("title")
+            .text(function (d) {return d.id;});
+
+        node.append("text")
+            .attr("dy", 0)
+            .text(function (d) {return d.name});
+
+        simulation
+            .nodes(nodes)
+            .on("tick", ticked);
+
+        simulation.force("link")
+            .links(links);
+    }
+
+    function ticked() {
+        link
+            .attr("x1", function (d) {return d.source.x;})
+            .attr("y1", function (d) {return d.source.y;})
+            .attr("x2", function (d) {return d.target.x;})
+            .attr("y2", function (d) {return d.target.y;});
+
+        node
+            .attr("transform", function (d) {return "translate(" + d.x + ", " + d.y + ")";});
+
+        edgepaths.attr('d', function (d) {
+            return 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y;
+        });
+
+        edgelabels.attr('transform', function (d) {
+            if (d.target.x < d.source.x) {
+                var bbox = this.getBBox();
+
+                rx = bbox.x + bbox.width / 2;
+                ry = bbox.y + bbox.height / 2;
+                return 'rotate(180 ' + rx + ' ' + ry + ')';
+            }
+            else {
+                return 'rotate(0)';
+            }
+        });
+    }
+
+    function dragstarted(d) {
+        if (!d3.event.active) simulation.alphaTarget(0.3).restart()
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(d) {
+        d.fx = d3.event.x;
+        d.fy = d3.event.y;
+    }
+
+//    function dragended(d) {
+//        if (!d3.event.active) simulation.alphaTarget(0);
+//        d.fx = undefined;
+//        d.fy = undefined;
+//    }
+
+</script>
+
+</body>
+</html>
